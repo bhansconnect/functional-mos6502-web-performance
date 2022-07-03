@@ -1,3 +1,4 @@
 *.wasm
 *.bc
+*.o
 platform/zig-cache

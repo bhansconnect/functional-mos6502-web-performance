@@ -1,12 +1,9 @@
-async function roc_web_platform_run(wasm_filename, callback) {
-  const decoder = new TextDecoder();
-  let memory_bytes;
+async function roc_gen_func() {
   let exit_code;
+  let count;
 
-  function js_display_roc_string(str_bytes, str_len) {
-    const utf8_bytes = memory_bytes.subarray(str_bytes, str_bytes + str_len);
-    const js_string = decoder.decode(utf8_bytes);
-    callback(js_string);
+  function set_output_count(cnt) {
+    count = cnt;
   }
 
   const importObj = {
@@ -17,9 +14,10 @@ async function roc_web_platform_run(wasm_filename, callback) {
         }
         exit_code = code;
       },
+      fd_write: (_) => { console.error("We don't deal with fd_write"); },
     },
     env: {
-      js_display_roc_string,
+      set_output_count,
       roc_panic: (_pointer, _tag_id) => {
         throw "Roc panicked!";
       },
@@ -28,7 +26,7 @@ async function roc_web_platform_run(wasm_filename, callback) {
 
   let wasm;
 
-  const response = await fetch(wasm_filename);
+  const response = await fetch("./implementations/roc/emulator.wasm");
 
   if (WebAssembly.instantiateStreaming) {
     // streaming API has better performance if available
@@ -38,20 +36,23 @@ async function roc_web_platform_run(wasm_filename, callback) {
     wasm = await WebAssembly.instantiate(module_bytes, importObj);
   }
 
-  memory_bytes = new Uint8Array(wasm.instance.exports.memory.buffer);
+  // memory_bytes = new Uint8Array(wasm.instance.exports.memory.buffer);
 
-  try {
-    wasm.instance.exports._start();
-  } catch (e) {
-    const is_ok = e.message === "unreachable" && exit_code === 0;
-    if (!is_ok) {
-      console.error(e);
+  return function (buf) {
+    try {
+      wasm.instance.exports._start();
+    } catch (e) {
+      const is_ok = e.message === "unreachable" && exit_code === 0;
+      if (!is_ok) {
+        console.error(e);
+      }
     }
+    return count;
   }
 }
 
 if (typeof module !== "undefined") {
   module.exports = {
-    roc_web_platform_run,
+    run,
   };
 }

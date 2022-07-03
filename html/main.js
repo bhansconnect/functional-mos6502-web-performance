@@ -54,7 +54,8 @@ async function setup() {
 
     implementations["Idris2"] = async buf => idris2_run(buf);
 
-    implementations["Roc"] = async _buf => roc_web_platform_run("./implementations/roc/emulator.wasm", (x) => { console.log(x) });
+    roc_func = await roc_gen_func();
+    implementations["Roc"] = async buf => roc_func(buf);
     // {
     //     const mod = await import("./implementations/purescript/bundle.js");
     //     implementations["PureScript"] = async buf => mod.run(buf)();
