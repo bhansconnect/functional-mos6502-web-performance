@@ -3,9 +3,9 @@ let implementations = {};
 async function measure(label, act) {
     const buf = files["data/program.dat"].slice();
 
-    const before = +new Date();
+    const before = performance.now();
     const cnt = await act(buf);
-    const after = +new Date();
+    const after = performance.now();
     if (cnt != 4142) throw { label: label, cnt: cnt };
 
     const time = after - before;
@@ -40,14 +40,13 @@ async function measureAll() {
         const avgTime = sumTime / numRuns;
 
         console.log(label + ":" +
-                    " min: " + minTime + "ms" +
-                    " max: " + maxTime + "ms" +
-                    " avg: " + avgTime + "ms");
+            " min: " + minTime + "ms" +
+            " max: " + maxTime + "ms" +
+            " avg: " + avgTime + "ms");
     }
 }
 
-async function setup()
-{
+async function setup() {
     {
         const mod = await import("./implementations/js/mos6502.js");
         implementations["JavaScript"] = async buf => mod.run(buf)();
@@ -55,16 +54,16 @@ async function setup()
 
     implementations["Idris2"] = async buf => idris2_run(buf);
 
-    {
-        const mod = await import("./implementations/purescript/bundle.js");
-        implementations["PureScript"] = async buf => mod.run(buf)();
-    }
+    // {
+    //     const mod = await import("./implementations/purescript/bundle.js");
+    //     implementations["PureScript"] = async buf => mod.run(buf)();
+    // }
 
-    {
-        const mod = await import("../implementations/asterius/_build/Driver.mjs");
-        const run = await mod.setup();
-        implementations["GHC-Asterius"] = async buf => await run(buf);
-    }
+    // {
+    //     const mod = await import("../implementations/asterius/_build/Driver.mjs");
+    //     const run = await mod.setup();
+    //     implementations["GHC-Asterius"] = async buf => await run(buf);
+    // }
 }
 
 setup().then({});

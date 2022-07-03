@@ -1,5 +1,5 @@
 HTML_FILES	= index.html base64.js main.js
-IMPLS		= purescript/bundle.js idris2/main.js js/mos6502.js
+IMPLS		= idris2/main.js js/mos6502.js
 
 .ONESHELL:
 
@@ -28,37 +28,13 @@ _build/files.js: data/program.dat
 	echo "};"; \
 	) > $@
 
-_build/implementations/purescript/bundle.js:
-	mkdir -p $(dir $@)
-	cd implementations/purescript
-	[ $$(node -p "require('big-integer/package.json').version") != "1.6.51" ] && \
-		npm install big-integer@1.6.51
-	spago bundle-module -t ../../$@
-
 implementations/idris2/build/exec/main.js:
-	cd implementations/idris2
-	idris2 --build fp-perf-mos6502-idris2.ipkg
+	(cd implementations/idris2 && idris2 --build fp-perf-mos6502-idris2.ipkg)
 
 _build/implementations/idris2/main.js: implementations/idris2/build/exec/main.js
 	mkdir -p $(dir $@)
 	cp -f $< $@
 
 _build/implementations/js/mos6502.js: implementations/js/mos6502.js
-	mkdir -p $(dir $@)
-	cp -f $< $@
-
-implementations/asterius/_build/Driver.wasm:
-	cd implementations/asterius
-	mkdir -p _build
-	docker run -it --rm -v $(shell readlink -f implementations/asterius):/workspace -w /workspace terrorjack/asterius \
-	  ahc-link --browser \
-	    --input-hs src/Driver.hs \
-	    --ghc-option "-O2" \
-	    --export-function run \
-	    --input-mjs index.js --no-main \
-	    --output-directory _build
-
-
-_build/Driver.wasm: implementations/asterius/_build/Driver.wasm
 	mkdir -p $(dir $@)
 	cp -f $< $@
