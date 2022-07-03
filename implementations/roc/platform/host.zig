@@ -1,10 +1,9 @@
 const std = @import("std");
-const str = @import("str");
 const builtin = @import("builtin");
-const RocStr = str.RocStr;
 const testing = std.testing;
 const expectEqual = testing.expectEqual;
 const expect = testing.expect;
+const always_inline = std.builtin.CallOptions.Modifier.always_inline;
 
 comptime {
     // This is a workaround for https://github.com/ziglang/zig/issues/8218
@@ -54,14 +53,61 @@ export fn roc_memcpy(dest: *anyopaque, src: *anyopaque, count: usize) callconv(.
 const mem = std.mem;
 const Allocator = mem.Allocator;
 
-extern fn roc__mainForHost_1_exposed(count: i32) i32;
+pub const REFCOUNT_ONE_ISIZE: isize = std.math.minInt(isize);
+pub const REFCOUNT_ONE: usize = @bitCast(usize, REFCOUNT_ONE_ISIZE);
+pub fn alloc(size: usize, alignment: u32) ?[*]u8 {
+    return @ptrCast(?[*]u8, @call(.{ .modifier = always_inline }, roc_alloc, .{ size, alignment }));
+}
+fn allocateWithRefcount(
+    data_bytes: usize,
+    element_alignment: u32,
+) [*]u8 {
+    const ptr_width = @sizeOf(usize);
+    const alignment = std.math.max(ptr_width, element_alignment);
+    const length = alignment + data_bytes;
+
+    var new_bytes: [*]u8 = alloc(length, alignment) orelse unreachable;
+
+    const data_ptr = new_bytes + alignment;
+    const refcount_ptr = @ptrCast([*]usize, @alignCast(ptr_width, data_ptr) - ptr_width);
+    refcount_ptr[0] = REFCOUNT_ONE;
+
+    return data_ptr;
+}
+
+const RocList = extern struct {
+    bytes: ?[*]u8,
+    length: usize,
+    capacity: usize,
+
+    fn allocate(
+        alignment: u32,
+        length: usize,
+        element_size: usize,
+    ) RocList {
+        const data_bytes = length * element_size;
+
+        return RocList{
+            .bytes = allocateWithRefcount(data_bytes, alignment),
+            .length = length,
+            .capacity = length,
+        };
+    }
+};
+
+extern fn roc__mainForHost_1_exposed(buf: i32) i32;
 
 const Unit = extern struct {};
 
 extern fn set_output_count(cnt: i32) void;
+extern fn buffer_length() usize;
+extern fn fill_buffer(list_bytes: ?[*]u8) void;
 
 pub fn main() u8 {
     // for now just return the correct cpu count.
+    const len = buffer_length();
+    const buffer = RocList.allocate(4, len, 1);
+    fill_buffer(buffer.bytes);
     set_output_count(roc__mainForHost_1_exposed(4142));
     return 0;
 }

@@ -1,10 +1,8 @@
 async function roc_gen_func() {
   let exit_code;
+  let wasm_exports;
+  let buffer;
   let count;
-
-  function set_output_count(cnt) {
-    count = cnt;
-  }
 
   const importObj = {
     wasi_snapshot_preview1: {
@@ -17,7 +15,12 @@ async function roc_gen_func() {
       fd_write: (_) => { console.error("We don't deal with fd_write"); },
     },
     env: {
-      set_output_count,
+      fill_buffer: (ptr) => {
+        bytes = new Uint8Array(wasm_exports.memory.buffer, ptr, buffer.length);
+        bytes.set(buffer);
+      },
+      buffer_length: () => { return buffer.length; },
+      set_output_count: (cnt) => { count = cnt; },
       roc_panic: (_pointer, _tag_id) => {
         throw "Roc panicked!";
       },
@@ -36,11 +39,12 @@ async function roc_gen_func() {
     wasm = await WebAssembly.instantiate(module_bytes, importObj);
   }
 
-  // memory_bytes = new Uint8Array(wasm.instance.exports.memory.buffer);
+  wasm_exports = wasm.instance.exports;
 
   return function (buf) {
+    buffer = new Uint8Array(buf);
     try {
-      wasm.instance.exports._start();
+      wasm_exports._start();
     } catch (e) {
       const is_ok = e.message === "unreachable" && exit_code === 0;
       if (!is_ok) {
