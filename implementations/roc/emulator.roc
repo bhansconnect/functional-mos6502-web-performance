@@ -239,6 +239,21 @@ absY = \emu0 ->
     byte = readReg emu1 Y
     T emu1 (Num.addWrap addr (Num.toU16 byte))
 
+xInd : Addressing
+xInd = \emu0 ->
+    (T emu1 z) = fetch emu0
+    offset = readReg emu1 X
+    ref = Num.addWrap (Num.toU16 z) (Num.toU16 offset)
+    readMemAddr emu1 ref
+
+indY : Addressing
+indY = \emu0 ->
+    (T emu1 z) = fetch emu0
+    offset = readReg emu1 Y
+    (T emu2 base) = readMemAddr emu1 (Num.toU16 z)
+    addr = Num.addWrap base (Num.toU16 offset)
+    T emu2 addr
+
 step : Emulator -> Emulator
 step = \{ cpu: cpu0, mem: mem0 } -> {
     cpu: { cpu0 & pc: Num.addWrap cpu0.pc 1 },
