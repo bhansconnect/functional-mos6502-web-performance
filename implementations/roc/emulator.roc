@@ -5,14 +5,12 @@ app "emulator"
 
 main = \mem ->
     emu = newEmulator 0x438b mem
-
     mainHelper emu 0
 
 mainHelper : Emulator, Nat -> Nat
 mainHelper = \emu0, cnt ->
     if emu0.cpu.pc != 0x640b then
         emu1 = step emu0
-
         mainHelper emu1 (cnt + 1)
     else
         cnt
@@ -85,6 +83,7 @@ readMem = \mem, addr ->
 
 writeMem : Mem, Addr, Byte -> Mem
 writeMem = \mem, addr, byte ->
+    # TODO: fix compiler bug, run this and hope I have no bugs in this code.
     # List.set mem (Num.toNat addr) byte
     mem
 
