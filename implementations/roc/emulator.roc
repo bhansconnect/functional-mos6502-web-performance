@@ -52,9 +52,9 @@ newCPU = \pc -> {
     pc,
 }
 
-Reg: [A, X, Y, SP]
+Reg : [A, X, Y, SP]
 
-readReg: Emulator, Reg -> Byte
+readReg : Emulator, Reg -> Byte
 readReg = \emu, reg ->
     when reg is
         A -> emu.cpu.regA
@@ -62,14 +62,15 @@ readReg = \emu, reg ->
         Y -> emu.cpu.regY
         SP -> emu.cpu.sp
 
-writeReg: Emulator, Reg, Byte -> Emulator
-writeReg = \{cpu: cpu0, mem}, reg, byte ->
+writeReg : Emulator, Reg, Byte -> Emulator
+writeReg = \{ cpu: cpu0, mem }, reg, byte ->
     cpu1 =
         when reg is
-            A -> {cpu0 & regA: byte}
-            X -> {cpu0 & regX: byte}
-            Y -> {cpu0 & regY: byte}
-            SP -> {cpu0 & sp: byte}
+            A -> { cpu0 & regA: byte }
+            X -> { cpu0 & regX: byte }
+            Y -> { cpu0 & regY: byte }
+            SP -> { cpu0 & sp: byte }
+
     { cpu: cpu1, mem }
 
 readMem : Mem, Addr -> Byte
@@ -177,36 +178,39 @@ decimal = 0b0000_1000
 overflow = 0b0100_0000
 negative = 0b1000_0000
 
-ByteOp: (Emulator, Byte -> Emulator)
-AddrOp: (Emulator, Addr -> Emulator)
-Addressing: (Emulator -> [T Emulator Addr])
-imm: Emulator, ByteOp -> Emulator
+ByteOp : Emulator, Byte -> Emulator
+AddrOp : Emulator, Addr -> Emulator
+Addressing : Emulator -> [T Emulator Addr]
+imm : Emulator, ByteOp -> Emulator
 imm = \emu0, op ->
-    T emu1 byte = fetch emu0
+    (T emu1 byte) = fetch emu0
+
     op emu1 byte
-byVal: Emulator, Addressing, ByteOp -> Emulator
+byVal : Emulator, Addressing, ByteOp -> Emulator
 byVal = \emu0, addressing, op ->
-    T emu1 addr = addressing emu0
+    (T emu1 addr) = addressing emu0
     byte = readMem emu1.mem addr
+
     op emu1 byte
-byRef: Emulator, Addressing, AddrOp -> Emulator
+byRef : Emulator, Addressing, AddrOp -> Emulator
 byRef = \emu0, addressing, op ->
-    T emu1 addr = addressing emu0
+    (T emu1 addr) = addressing emu0
+
     op emu1 addr
-inplace: Emulator, Addressing, ByteOp -> Emulator
+inplace : Emulator, Addressing, ByteOp -> Emulator
 inplace = \emu, addressing, op ->
     byRef
         emu
         addressing
-        \{cpu, mem: mem0}, addr ->
+        \{ cpu, mem: mem0 }, addr ->
             byte = readMem mem0 addr
             mem1 = writeMem mem0 addr byte
-            {cpu, mem: mem1 }
-implied: Emulator, Reg, ByteOp -> Emulator
+
+            { cpu, mem: mem1 }
+implied : Emulator, Reg, ByteOp -> Emulator
 
 step : Emulator -> Emulator
-step = \{ cpu: cpu0, mem: mem0 } ->
-    {
-        cpu: { cpu0 & pc: Num.addWrap cpu0.pc 1 },
-        mem: mem0,
-    }
+step = \{ cpu: cpu0, mem: mem0 } -> {
+    cpu: { cpu0 & pc: Num.addWrap cpu0.pc 1 },
+    mem: mem0,
+}
