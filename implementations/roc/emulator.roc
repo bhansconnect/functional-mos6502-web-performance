@@ -300,6 +300,31 @@ sbc = \emu0, byte ->
     (T emu1 result) = sub emu0 (Num.toU16 a) (Num.toU16 byte)
     writeReg emu1 A result
 
+alu : (Addr -> Addr) -> PartialByteOp
+alu = \f ->
+    \emu0, a ->
+        result = f (Num.toU16 a)
+        emu1 = setFlag emu0 zero ((Num.bitwiseAnd result 0xFF) == 0x00)
+        emu2 = setFlag emu1 negative ((Num.bitwiseAnd result 0x80) == 0x80)
+        T emu2 (Num.toU8 result)
+
+and : ByteOp
+and = \emu0, byte ->
+    a = readReg emu0 A
+    (T emu1 result) = (alu (\v -> Num.bitwiseAnd (Num.toU16 byte) v)) emu0 a
+    writeReg emu1 A result
+
+eor : ByteOp
+eor = \emu0, byte ->
+    a = readReg emu0 A
+    (T emu1 result) = (alu (\v -> Num.bitwiseXor (Num.toU16 byte) v)) emu0 a
+    writeReg emu1 A result
+
+ora : ByteOp
+ora = \emu0, byte ->
+    a = readReg emu0 A
+    (T emu1 result) = (alu (\v -> Num.bitwiseOr (Num.toU16 byte) v)) emu0 a
+    writeReg emu1 A result
 
 step : Emulator -> Emulator
 step = \emu0 ->
