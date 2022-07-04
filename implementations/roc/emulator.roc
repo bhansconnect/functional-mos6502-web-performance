@@ -254,6 +254,52 @@ indY = \emu0 ->
     addr = Num.addWrap base (Num.toU16 offset)
     T emu2 addr
 
+signed : Emulator, (Addr, Addr, Bool -> Addr), Addr, Addr -> [T Emulator Byte]
+signed = \emu0, f, v1, v2 ->
+    c0 = getFlag emu0 carry
+    result = f v1 v2 c0
+    #TODO: BCD
+
+    emu1 = setFlag emu0 overflow ((Num.bitwiseAnd result 0x80) != (Num.bitwiseAnd (Num.bitwiseAnd v1 v2) 0x80))
+    emu2 = setFlag emu1 carry (result >= 0x100)
+    emu3 = setFlag emu2 zero ((Num.bitwiseAnd result 0xFF) == 0x00)
+    emu4 = setFlag emu3 negative ((Num.bitwiseAnd result 0x80) == 0x80)
+    T emu4 (Num.toU8 result)
+
+adc : ByteOp
+adc = \emu0, byte ->
+    a = readReg emu0 A
+    (T emu1 result) = signed emu0
+        (\v1, v2, c0 ->
+            Num.addWrap (Num.addWrap v1 v2) (if c0 then 1 else 0)
+        ) (Num.toU16 a) (Num.toU16 byte)
+    writeReg emu1 A result
+
+sub : Emulator, Addr, Addr -> [T Emulator Byte]
+sub = \emu0, v1, v2 ->
+    # Not sure why this doesn't use signed, but just following the javascript code.
+    c0 = getFlag emu0 carry
+    extended = Num.subWrap (Num.subWrap v1 v2) (if c0 then 0 else 1)
+    emu1 = setFlag emu0 overflow ((Num.bitwiseAnd extended 0x80) != (Num.bitwiseAnd (Num.bitwiseAnd v1 v2) 0x80))
+    emu2 = setFlag emu1 carry (extended >= 0x100)
+    emu3 = setFlag emu2 zero ((Num.bitwiseAnd extended 0xFF) == 0x00)
+    emu4 = setFlag emu3 negative ((Num.bitwiseAnd extended 0x80) == 0x80)
+    T emu4 (Num.toU8 extended)
+
+cmp : Byte -> ByteOp
+cmp = \a ->
+    \emu0, v ->
+        emu1 = setFlag emu0 carry True
+        (T emu2 byte) = sub emu1 (Num.toU16 a) (Num.toU16 v)
+        emu2
+
+sbc : ByteOp
+sbc = \emu0, byte ->
+    a = readReg emu0 A
+    (T emu1 result) = sub emu0 (Num.toU16 a) (Num.toU16 byte)
+    writeReg emu1 A result
+
+
 step : Emulator -> Emulator
 step = \emu0 ->
     (T emu1 op) = fetch emu0
