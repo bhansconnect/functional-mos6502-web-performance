@@ -206,6 +206,39 @@ implied = \emu0, reg, op ->
     T emu1 outByte = op emu0 readByte
     writeReg emu1 reg outByte
 
+zp : Addressing
+zp = \emu0 ->
+    (T emu1 byte) = fetch emu0
+    T emu1 (Num.toU16 byte)
+
+zpX : Addressing
+zpX = \emu0 ->
+    (T emu1 addr) = zp emu0
+    byte = readReg emu1 X
+    T emu1 (Num.addWrap addr (Num.toU16 byte))
+
+zpY : Addressing
+zpY = \emu0 ->
+    (T emu1 addr) = zp emu0
+    byte = readReg emu1 Y
+    T emu1 (Num.addWrap addr (Num.toU16 byte))
+
+abs : Addressing
+abs = \emu0 ->
+    fetchAddr emu0
+
+absX : Addressing
+absX = \emu0 ->
+    (T emu1 addr) = fetchAddr emu0
+    byte = readReg emu1 X
+    T emu1 (Num.addWrap addr (Num.toU16 byte))
+
+absY : Addressing
+absY = \emu0 ->
+    (T emu1 addr) = fetchAddr emu0
+    byte = readReg emu1 Y
+    T emu1 (Num.addWrap addr (Num.toU16 byte))
+
 step : Emulator -> Emulator
 step = \{ cpu: cpu0, mem: mem0 } -> {
     cpu: { cpu0 & pc: Num.addWrap cpu0.pc 1 },
