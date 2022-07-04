@@ -255,7 +255,13 @@ indY = \emu0 ->
     T emu2 addr
 
 step : Emulator -> Emulator
-step = \{ cpu: cpu0, mem: mem0 } -> {
-    cpu: { cpu0 & pc: Num.addWrap cpu0.pc 1 },
-    mem: mem0,
-}
+step = \emu0 ->
+    (T emu1 op) = fetch emu0
+    when op is
+        _ ->
+            cpu1 = emu1.cpu
+            {
+                # Panic on unknown opcodes.
+                cpu: {cpu1 & pc: 0xFF + 1},
+                mem: emu1.mem
+            }
