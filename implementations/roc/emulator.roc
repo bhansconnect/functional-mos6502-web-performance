@@ -399,6 +399,22 @@ store = \reg ->
             mem: mem1
         }
 
+jsr : AddrOp
+jsr = \emu0, addr ->
+    curr = emu0.cpu.pc
+    {cpu: cpu1, mem: mem1} = pushAddr emu0 (Num.subWrap curr 1)
+    {
+        cpu: {cpu1 & pc: addr},
+        mem: mem1
+    }
+
+transfer : Emulator, Reg, Reg -> Emulator
+transfer = \emu0, from, to ->
+    # This looks wrong, but I am just gonna copy what the js emulator does
+    v = readReg emu0 from
+    (T emu1 result) = (alu (\_ -> 0)) emu0 0
+    writeReg emu1 to result
+
 step : Emulator -> Emulator
 step = \emu0 ->
     (T emu1 op) = fetch emu0
