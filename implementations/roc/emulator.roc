@@ -376,6 +376,29 @@ br = \emu0, flag, target ->
             mem: mem1
         }
 
+dec : PartialByteOp
+dec = alu \v -> Num.toU16 (Num.subWrap (Num.toU8 v) 1)
+
+inc : PartialByteOp
+inc = alu \v -> Num.toU16 (Num.subWrap (Num.toU8 v) 1)
+
+load : Reg -> ByteOp
+load = \reg ->
+    \emu0, v ->
+        emu1 = setFlag emu0 zero (v == 0x00)
+        emu2 = setFlag emu1 negative ((Num.bitwiseAnd v 0x80) == 0x80)
+        writeReg emu2 reg v
+
+store : Reg -> AddrOp
+store = \reg ->
+    \{cpu: cpu0, mem: mem0}, addr ->
+        readByte = readReg {cpu: cpu0, mem: mem0} reg
+        mem1 = writeMem mem0 addr readByte
+        {
+            cpu: cpu0,
+            mem: mem1
+        }
+
 step : Emulator -> Emulator
 step = \emu0 ->
     (T emu1 op) = fetch emu0
