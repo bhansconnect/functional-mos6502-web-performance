@@ -190,15 +190,16 @@ byRef = \emu0, addressing, op ->
     (T emu1 addr) = addressing emu0
     op emu1 addr
 
-inplace : Emulator, Addressing, ByteOp -> Emulator
+inplace : Emulator, Addressing, PartialByteOp -> Emulator
 inplace = \emu, addressing, op ->
     byRef
         emu
         addressing
-        \{ cpu, mem: mem0 }, addr ->
-            byte = readMem mem0 addr
-            mem1 = writeMem mem0 addr byte
-            { cpu, mem: mem1 }
+        \{ cpu: cpu0, mem: mem0 }, addr ->
+            readByte = readMem mem0 addr
+            (T {cpu: cpu1, mem: mem1} outByte) = op { cpu: cpu0, mem: mem0 } readByte
+            mem2 = writeMem mem1 addr outByte
+            { cpu: cpu1, mem: mem2 }
 
 implied : Emulator, Reg, PartialByteOp -> Emulator
 implied = \emu0, reg, op ->

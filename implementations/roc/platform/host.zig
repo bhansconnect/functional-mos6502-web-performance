@@ -96,6 +96,7 @@ const RocList = extern struct {
 };
 
 extern fn roc__mainForHost_1_exposed(bytes: ?[*]u8, length: usize, capacity: usize) usize;
+// extern fn roc__mainForHost_1_exposed(*RocList) usize;
 
 const Unit = extern struct {};
 
@@ -106,8 +107,9 @@ extern fn fill_buffer(list_bytes: ?[*]u8) void;
 pub fn main() u8 {
     // for now just return the correct cpu count.
     const len = buffer_length();
-    const buffer = RocList.allocate(8, len, 1);
+    var buffer = RocList.allocate(8, len, 1);
     fill_buffer(buffer.bytes);
     set_output_count(roc__mainForHost_1_exposed(buffer.bytes, buffer.length, buffer.capacity));
+    // set_output_count(roc__mainForHost_1_exposed(&buffer));
     return 0;
 }
