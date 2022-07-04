@@ -3,4 +3,8 @@ app "emulator"
     imports []
     provides [main] to pf
 
-main = \cnt -> cnt
+main = \x ->
+    if List.len x == 65536 then
+        4142
+    else
+        -7

@@ -40,7 +40,7 @@ _build/implementations/js/mos6502.js: implementations/js/mos6502.js
 	cp -f $< $@
 
 implementations/roc/emulator.wasm:
-	(roc build --target=wasm32 implementations/roc/emulator.roc)
+	(roc build --target=wasm32 --optimize implementations/roc/emulator.roc)
 
 _build/implementations/roc/emulator.wasm: implementations/roc/emulator.wasm
 	mkdir -p $(dir $@)
