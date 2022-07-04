@@ -95,11 +95,11 @@ const RocList = extern struct {
     }
 };
 
-extern fn roc__mainForHost_1_exposed(bytes: ?[*]u8, length: usize, capacity: usize) i32;
+extern fn roc__mainForHost_1_exposed(bytes: ?[*]u8, length: usize, capacity: usize) usize;
 
 const Unit = extern struct {};
 
-extern fn set_output_count(cnt: i32) void;
+extern fn set_output_count(cnt: usize) void;
 extern fn buffer_length() usize;
 extern fn fill_buffer(list_bytes: ?[*]u8) void;
 
