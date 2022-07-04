@@ -5,12 +5,14 @@ app "emulator"
 
 main = \mem ->
     emu = newEmulator 0x438b mem
+
     mainHelper emu 0
 
-mainHelper: Emulator, Nat -> Nat
+mainHelper : Emulator, Nat -> Nat
 mainHelper = \emu0, cnt ->
     if emu0.cpu.pc != 0x640b then
         emu1 = step emu0
+
         mainHelper emu1 (cnt + 1)
     else
         cnt
@@ -28,7 +30,7 @@ newEmulator = \pc, mem -> {
 
 Addr : U16
 Byte : U8
-Flag: Byte
+Flag : Byte
 Mem : List U8
 
 CPU : {
@@ -50,24 +52,29 @@ newCPU = \pc -> {
     pc,
 }
 
-readMem: Mem, Addr -> Byte
+readMem : Mem, Addr -> Byte
 readMem = \mem, addr ->
     when List.get mem (Num.toNat addr) is
         Ok b -> b
-        Err OutOfBounds -> 0xFF + 1 # Force a panic by overflowing a U8
+        Err OutOfBounds ->
+            # Force a panic by overflowing a U8
+            0xFF + 1
 
-writeMem: Mem, Addr, Byte -> Mem
+writeMem : Mem, Addr, Byte -> Mem
 writeMem = \mem, addr, byte ->
     List.set mem (Num.toNat addr) byte
 
-fetch: Emulator -> [T Emulator Byte]
-fetch = \{cpu, mem} ->
+fetch : Emulator -> [T Emulator Byte]
+fetch = \{ cpu, mem } ->
     addr = cpu.pc
     byte = readMem mem addr
-    T {
-        cpu: {cpu & pc: Num.addWrap addr 1},
-        mem,
-    } byte
+
+    T
+        {
+            cpu: { cpu & pc: Num.addWrap addr 1 },
+            mem,
+        }
+        byte
 
 toAddr : Byte, Byte -> Addr
 toAddr = \lo, hi ->
@@ -75,65 +82,73 @@ toAddr = \lo, hi ->
 
 fetchAddr : Emulator -> [T Emulator Addr]
 fetchAddr = \emu0 ->
-    T emu1 lo = fetch emu0
-    T emu2 hi = fetch emu1
+    (T emu1 lo) = fetch emu0
+    (T emu2 hi) = fetch emu1
+
     T emu2 (toAddr lo hi)
 
 readMemAddr : Emulator, Addr -> [T Emulator Addr]
 readMemAddr = \emu, addr ->
     lo = readMem emu.mem addr
     hi = readMem emu.mem (Num.addWrap addr 1)
+
     T emu (toAddr lo hi)
 
 push : Emulator, Byte -> Emulator
-push = \{cpu, mem: mem0}, byte ->
+push = \{ cpu, mem: mem0 }, byte ->
     ptr = Num.toU16 cpu.sp
     mem1 = writeMem mem0 (Num.addWrap ptr 0x100) byte
+
     {
         # This may be a bad idea. It probably shouldn't wrap.
         # instead it should just crash, but this is what the js version does.
-        cpu: {cpu & sp: Num.subWrap (Num.toU8 ptr) 1},
-        mem: mem1
+        cpu: { cpu & sp: Num.subWrap (Num.toU8 ptr) 1 },
+        mem: mem1,
     }
 
-pushAddr: Emulator, Addr -> Emulator
+pushAddr : Emulator, Addr -> Emulator
 pushAddr = \emu0, addr ->
     hi = Num.toU8 (Num.shiftRightZfBy 8 addr)
     lo = Num.toU8 (Num.bitwiseAnd addr 0xFF)
     emu1 = push emu0 hi
+
     push emu1 lo
 
-pop: Emulator -> [T Emulator Byte]
-pop = \{cpu, mem} ->
+pop : Emulator -> [T Emulator Byte]
+pop = \{ cpu, mem } ->
     ptr = Num.toU16 (Num.addWrap cpu.sp 1)
     byte = readMem mem (Num.addWrap ptr 0x100)
-    T {
-        cpu: {cpu & sp: Num.toU8 ptr},
-        mem
-    } byte
 
-popAddr: Emulator -> [T Emulator Addr]
+    T
+        {
+            cpu: { cpu & sp: Num.toU8 ptr },
+            mem,
+        }
+        byte
+
+popAddr : Emulator -> [T Emulator Addr]
 popAddr = \emu0 ->
-    T emu1 lo = pop emu0
-    T emu2 hi = pop emu1
+    (T emu1 lo) = pop emu0
+    (T emu2 hi) = pop emu1
+
     T emu2 (toAddr lo hi)
 
 getFlag : Emulator, Flag -> Bool
-getFlag = \{cpu}, flag ->
-    (Num.bitwiseAnd cpu.status flag) != 0
+getFlag = \{ cpu }, flag ->
+    Num.bitwiseAnd cpu.status flag != 0
 
 setFlag : Emulator, Flag, Bool -> Emulator
-setFlag = \{cpu, mem}, flag, b ->
+setFlag = \{ cpu, mem }, flag, b ->
     status =
         if b then
             Num.bitwiseOr cpu.status flag
         else
             Num.bitwiseAnd cpu.status (Num.bitwiseXor flag 0xFF)
+
     {
-        cpu: {cpu & status},
+        cpu: { cpu & status },
         mem,
     }
-
 
 carry = 0b0000_0001
 zero = 0b0000_0010
@@ -142,9 +157,8 @@ decimal = 0b0000_1000
 overflow = 0b0100_0000
 negative = 0b1000_0000
 
-step: Emulator -> Emulator
-step = \{cpu: cpu0, mem: mem0} ->
-    {
-        cpu: {cpu0 & pc: Num.addWrap cpu0.pc 1},
-        mem: mem0,
-    }
+step : Emulator -> Emulator
+step = \{ cpu: cpu0, mem: mem0 } -> {
+    cpu: { cpu0 & pc: Num.addWrap cpu0.pc 1 },
+    mem: mem0,
+}
