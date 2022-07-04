@@ -326,6 +326,28 @@ ora = \emu0, byte ->
     (T emu1 result) = (alu (\v -> Num.bitwiseOr (Num.toU16 byte) v)) emu0 a
     writeReg emu1 A result
 
+shiftRot : (Bool, Byte -> {c: Byte, v: Byte}) -> PartialByteOp
+shiftRot = \f ->
+    \emu0, v ->
+        c = getFlag emu0 carry
+        cv = f c v
+        emu1 = setFlag emu0 carry (cv.c != 0)
+        emu2 = setFlag emu1 zero (cv.v == 0x00)
+        emu3 = setFlag emu2 negative ((Num.bitwiseAnd cv.v 0x80) == 0x80)
+        T emu3 cv.v
+
+asl : PartialByteOp
+asl = shiftRot (\c,v -> { c: Num.bitwiseAnd v 0x80, v: Num.shiftLeftBy 1 v })
+
+lsr : PartialByteOp
+lsr = shiftRot (\c,v -> { c: Num.bitwiseAnd v 0x01, v: Num.shiftRightZfBy 1 v })
+
+rol : PartialByteOp
+rol = shiftRot (\c,v -> { c: Num.bitwiseAnd v 0x80, v: Num.bitwiseOr (Num.shiftLeftBy 1 v) (if c then 0x01 else 0x00) })
+
+ror : PartialByteOp
+ror = shiftRot (\c,v -> { c: Num.bitwiseAnd v 0x01, v: Num.bitwiseOr (Num.shiftRightZfBy 1 v) (if c then 0x80 else 0x00) })
+
 step : Emulator -> Emulator
 step = \emu0 ->
     (T emu1 op) = fetch emu0
