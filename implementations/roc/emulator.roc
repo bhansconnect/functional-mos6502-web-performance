@@ -89,7 +89,6 @@ fetch : Emulator -> [T Emulator Byte]
 fetch = \{ cpu, mem } ->
     addr = cpu.pc
     byte = readMem mem addr
-
     T
         {
             cpu: { cpu & pc: Num.addWrap addr 1 },
@@ -105,21 +104,18 @@ fetchAddr : Emulator -> [T Emulator Addr]
 fetchAddr = \emu0 ->
     (T emu1 lo) = fetch emu0
     (T emu2 hi) = fetch emu1
-
     T emu2 (toAddr lo hi)
 
 readMemAddr : Emulator, Addr -> [T Emulator Addr]
 readMemAddr = \emu, addr ->
     lo = readMem emu.mem addr
     hi = readMem emu.mem (Num.addWrap addr 1)
-
     T emu (toAddr lo hi)
 
 push : Emulator, Byte -> Emulator
 push = \{ cpu, mem: mem0 }, byte ->
     ptr = Num.toU16 cpu.sp
     mem1 = writeMem mem0 (Num.addWrap ptr 0x100) byte
-
     {
         # This may be a bad idea. It probably shouldn't wrap.
         # instead it should just crash, but this is what the js version does.
@@ -132,14 +128,12 @@ pushAddr = \emu0, addr ->
     hi = Num.toU8 (Num.shiftRightZfBy 8 addr)
     lo = Num.toU8 (Num.bitwiseAnd addr 0xFF)
     emu1 = push emu0 hi
-
     push emu1 lo
 
 pop : Emulator -> [T Emulator Byte]
 pop = \{ cpu, mem } ->
     ptr = Num.toU16 (Num.addWrap cpu.sp 1)
     byte = readMem mem (Num.addWrap ptr 0x100)
-
     T
         {
             cpu: { cpu & sp: Num.toU8 ptr },
@@ -151,7 +145,6 @@ popAddr : Emulator -> [T Emulator Addr]
 popAddr = \emu0 ->
     (T emu1 lo) = pop emu0
     (T emu2 hi) = pop emu1
-
     T emu2 (toAddr lo hi)
 
 getFlag : Emulator, Flag -> Bool
@@ -165,7 +158,6 @@ setFlag = \{ cpu, mem }, flag, b ->
             Num.bitwiseOr cpu.status flag
         else
             Num.bitwiseAnd cpu.status (Num.bitwiseXor flag 0xFF)
-
     {
         cpu: { cpu & status },
         mem,
@@ -178,25 +170,26 @@ decimal = 0b0000_1000
 overflow = 0b0100_0000
 negative = 0b1000_0000
 
+PartialByteOp : Emulator, Byte -> [T Emulator Byte]
 ByteOp : Emulator, Byte -> Emulator
 AddrOp : Emulator, Addr -> Emulator
 Addressing : Emulator -> [T Emulator Addr]
 imm : Emulator, ByteOp -> Emulator
 imm = \emu0, op ->
     (T emu1 byte) = fetch emu0
-
     op emu1 byte
+
 byVal : Emulator, Addressing, ByteOp -> Emulator
 byVal = \emu0, addressing, op ->
     (T emu1 addr) = addressing emu0
     byte = readMem emu1.mem addr
-
     op emu1 byte
+
 byRef : Emulator, Addressing, AddrOp -> Emulator
 byRef = \emu0, addressing, op ->
     (T emu1 addr) = addressing emu0
-
     op emu1 addr
+
 inplace : Emulator, Addressing, ByteOp -> Emulator
 inplace = \emu, addressing, op ->
     byRef
@@ -205,9 +198,13 @@ inplace = \emu, addressing, op ->
         \{ cpu, mem: mem0 }, addr ->
             byte = readMem mem0 addr
             mem1 = writeMem mem0 addr byte
-
             { cpu, mem: mem1 }
-implied : Emulator, Reg, ByteOp -> Emulator
+
+implied : Emulator, Reg, PartialByteOp -> Emulator
+implied = \emu0, reg, op ->
+    readByte = readReg emu0 reg
+    T emu1 outByte = op emu0 readByte
+    writeReg emu1 reg outByte
 
 step : Emulator -> Emulator
 step = \{ cpu: cpu0, mem: mem0 } -> {
