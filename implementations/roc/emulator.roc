@@ -348,6 +348,34 @@ rol = shiftRot (\c,v -> { c: Num.bitwiseAnd v 0x80, v: Num.bitwiseOr (Num.shiftL
 ror : PartialByteOp
 ror = shiftRot (\c,v -> { c: Num.bitwiseAnd v 0x01, v: Num.bitwiseOr (Num.shiftRightZfBy 1 v) (if c then 0x80 else 0x00) })
 
+bit : ByteOp
+bit = \emu0, v ->
+    a = readReg emu0 A
+    emu1 = setFlag emu0 zero ((Num.bitwiseAnd a v) == 0x00)
+    emu2 = setFlag emu1 negative ((Num.bitwiseAnd v 0x80) == 0x80)
+    setFlag emu2 overflow ((Num.bitwiseAnd v 0x40) == 0x40)
+
+br : Emulator, Flag, Bool -> Emulator
+br = \emu0, flag, target ->
+    b = getFlag emu0 flag
+    (T {cpu: cpu1, mem: mem1} offset) = fetch emu0
+    if b == target then
+        nextPC =
+                addResult = Num.addWrap cpu1.pc (Num.toU16 offset)
+                if offset < 0x80 then
+                    addResult
+                else
+                    Num.subWrap addResult 0x100
+        {
+            cpu: {cpu1 & pc: nextPC},
+            mem: mem1
+        }
+    else
+        {
+            cpu: cpu1,
+            mem: mem1
+        }
+
 step : Emulator -> Emulator
 step = \emu0 ->
     (T emu1 op) = fetch emu0
