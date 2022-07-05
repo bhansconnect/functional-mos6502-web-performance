@@ -21,20 +21,26 @@ async function roc_gen_func() {
       },
       buffer_length: () => { return buffer.length; },
       set_output_count: (cnt) => { count = cnt; },
-      roc_panic: (_pointer, _tag_id) => {
-        throw "Roc panicked!";
+      roc_panic: (pointer, _tag_id) => {
+        const bytes = new Uint8Array(wasm_exports.memory.buffer, pointer);
+        const end = bytes.findIndex(x => x === 0);
+        const decoder = new TextDecoder();
+        const msg = decoder.decode(bytes.slice(0, end));
+
+        throw `Roc panicked with message: '${msg}'`;
       },
     },
   };
 
   let wasm;
 
-  const response = await fetch("./implementations/roc/emulator.wasm");
+  const request = fetch("./implementations/roc/emulator.wasm");
 
   if (WebAssembly.instantiateStreaming) {
     // streaming API has better performance if available
-    wasm = await WebAssembly.instantiateStreaming(response, importObj);
+    wasm = await WebAssembly.instantiateStreaming(request, importObj);
   } else {
+    const response = await request;
     const module_bytes = await response.arrayBuffer();
     wasm = await WebAssembly.instantiate(module_bytes, importObj);
   }
