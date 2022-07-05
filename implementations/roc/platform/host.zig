@@ -25,8 +25,10 @@ extern fn realloc(c_ptr: [*]align(@alignOf(Align)) u8, size: usize) callconv(.C)
 extern fn free(c_ptr: [*]align(@alignOf(Align)) u8) callconv(.C) void;
 extern fn memcpy(dest: *anyopaque, src: *anyopaque, count: usize) *anyopaque;
 
+// var AllocCount: usize = 0;
 export fn roc_alloc(size: usize, alignment: u32) callconv(.C) ?*anyopaque {
     _ = alignment;
+    // AllocCount += 1;
     return malloc(size);
 }
 
@@ -109,6 +111,7 @@ pub fn main() u8 {
     var buffer = RocList.allocate(8, len, 1);
     fill_buffer(buffer.bytes);
     set_output_count(roc__mainForHost_1_exposed(buffer.bytes, buffer.length, buffer.capacity));
+    // set_output_count(AllocCount);
     // set_output_count(roc__mainForHost_1_exposed(&buffer));
     return 0;
 }
