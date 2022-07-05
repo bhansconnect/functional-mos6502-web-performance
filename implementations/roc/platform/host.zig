@@ -27,7 +27,6 @@ extern fn memcpy(dest: *anyopaque, src: *anyopaque, count: usize) *anyopaque;
 
 export fn roc_alloc(size: usize, alignment: u32) callconv(.C) ?*anyopaque {
     _ = alignment;
-
     return malloc(size);
 }
 

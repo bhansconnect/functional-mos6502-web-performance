@@ -83,9 +83,7 @@ readMem = \mem, addr ->
 
 writeMem : Mem, Addr, Byte -> Mem
 writeMem = \mem, addr, byte ->
-    # TODO: fix compiler bug, run this and hope I have no bugs in this code.
-    # List.set mem (Num.toNat addr) byte
-    mem
+    List.set mem (Num.toNat addr) byte
 
 fetch : Emulator -> [T Emulator Byte]
 fetch = \{ cpu, mem } ->
