@@ -508,7 +508,7 @@ step = \emu0 ->
         0xf6 -> inplace emu1 zpX inc
         0xee -> inplace emu1 abs inc
         0xfe -> inplace emu1 absX inc
-        0xea -> implied emu1 X inc
+        0xe8 -> implied emu1 X inc
         0xc8 -> implied emu1 Y inc
 
         0x4c ->
