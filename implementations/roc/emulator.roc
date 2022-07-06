@@ -624,6 +624,6 @@ step = \emu0 ->
             cpu1 = emu1.cpu
             {
                 # Panic on unknown opcodes.
-                cpu: {cpu1 & pc: 0xFF + 1},
+                cpu: {cpu1 & pc: 0x0 - 1},
                 mem: emu1.mem
             }
