@@ -68,4 +68,4 @@ async function setup() {
     // }
 }
 
-setup().then({});
+setup().then(measureAll);
