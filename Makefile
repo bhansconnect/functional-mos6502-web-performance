@@ -44,7 +44,7 @@ implementations/roc/emulator.wasm:
 
 _build/implementations/roc/emulator.wasm: implementations/roc/emulator.wasm
 	mkdir -p $(dir $@)
-	; For a smaller an maginally faster binary we could `wasm-opt -O3 $< $@` instead.
+	# For a smaller an maginally faster binary we could `wasm-opt -O3 $< $@` instead.
 	cp -f $< $@
 
 _build/implementations/roc/host.js: implementations/roc/platform/host.js
@@ -56,7 +56,7 @@ implementations/roc-effectful/emulator.wasm:
 
 _build/implementations/roc-effectful/emulator.wasm: implementations/roc-effectful/emulator.wasm
 	mkdir -p $(dir $@)
-	; For a smaller an maginally faster binary we could `wasm-opt -O3 $< $@` instead.
+	# For a smaller an maginally faster binary we could `wasm-opt -O3 $< $@` instead.
 	cp -f $< $@
 
 _build/implementations/roc-effectful/host.js: implementations/roc-effectful/platform/host.js
