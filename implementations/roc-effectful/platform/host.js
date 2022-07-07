@@ -15,12 +15,9 @@ async function roc_effectful_gen_func() {
       fd_write: (_) => { console.error("We don't deal with fd_write"); },
     },
     env: {
-      fill_buffer: (ptr) => {
-        bytes = new Uint8Array(wasm_exports.memory.buffer, ptr, buffer.length);
-        bytes.set(buffer);
-      },
-      buffer_length: () => { return buffer.length; },
       set_output_count: (cnt) => { count = cnt; },
+      roc_fx_readMem: (i) => { return buffer[i]; },
+      roc_fx_writeMem: (i, val) => { buffer[i] = val; },
       roc_panic: (pointer, _tag_id) => {
         const bytes = new Uint8Array(wasm_exports.memory.buffer, pointer);
         const end = bytes.findIndex(x => x === 0);

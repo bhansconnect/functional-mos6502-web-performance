@@ -54,48 +54,6 @@ export fn roc_memcpy(dest: *anyopaque, src: *anyopaque, count: usize) callconv(.
 const mem = std.mem;
 const Allocator = mem.Allocator;
 
-pub const REFCOUNT_ONE_ISIZE: isize = std.math.minInt(isize);
-pub const REFCOUNT_ONE: usize = @bitCast(usize, REFCOUNT_ONE_ISIZE);
-pub fn alloc(size: usize, alignment: u32) ?[*]u8 {
-    return @ptrCast(?[*]u8, @call(.{ .modifier = always_inline }, roc_alloc, .{ size, alignment }));
-}
-fn allocateWithRefcount(
-    data_bytes: usize,
-    element_alignment: u32,
-) [*]u8 {
-    const ptr_width = @sizeOf(usize);
-    const alignment = std.math.max(ptr_width, element_alignment);
-    const length = alignment + data_bytes;
-
-    var new_bytes: [*]u8 = alloc(length, alignment) orelse unreachable;
-
-    const data_ptr = new_bytes + alignment;
-    const refcount_ptr = @ptrCast([*]usize, @alignCast(ptr_width, data_ptr) - ptr_width);
-    refcount_ptr[0] = REFCOUNT_ONE;
-
-    return data_ptr;
-}
-
-const RocList = extern struct {
-    bytes: ?[*]u8,
-    length: usize,
-    capacity: usize,
-
-    fn allocate(
-        alignment: u32,
-        length: usize,
-        element_size: usize,
-    ) RocList {
-        const data_bytes = length * element_size;
-
-        return RocList{
-            .bytes = allocateWithRefcount(data_bytes, alignment),
-            .length = length,
-            .capacity = length,
-        };
-    }
-};
-
 extern fn roc__mainForHost_1_exposed_generic([*]u8) void;
 extern fn roc__mainForHost_size() i64;
 extern fn roc__mainForHost_1_Fx_caller(*const u8, [*]u8, [*]usize) void;
@@ -120,20 +78,9 @@ fn call_the_closure(closure_data_pointer: [*]u8) usize {
     return output[0];
 }
 
-const Unit = extern struct {};
-
 extern fn set_output_count(cnt: usize) void;
-extern fn buffer_length() usize;
-extern fn fill_buffer(list_bytes: ?[*]u8) void;
-
-var memory: RocList = RocList{ .bytes = null, .length = 0, .capacity = 0 };
 
 pub fn main() u8 {
-    // for now just return the correct cpu count.
-    const len = buffer_length();
-    memory = RocList.allocate(8, len, 1);
-    fill_buffer(memory.bytes);
-
     // Setup roc closure calling.
     const size = @intCast(usize, roc__mainForHost_size());
     const raw_output = roc_alloc(@intCast(usize, size), @alignOf(u64)).?;
@@ -151,12 +98,4 @@ pub fn main() u8 {
     set_output_count(cnt);
     // set_output_count(AllocCount);
     return 0;
-}
-
-pub export fn roc_fx_readMem(addr: u16) u8 {
-    return memory.bytes.?[addr];
-}
-
-pub export fn roc_fx_writeMem(addr: u16, byte: u8) void {
-    memory.bytes.?[addr] = byte;
 }
