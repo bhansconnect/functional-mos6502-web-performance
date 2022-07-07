@@ -17,6 +17,7 @@ async function measureAll() {
     const numRuns = 100;
     const numWarmup = 100;
 
+    document.body.innerHTML = "";
     for (const [label, act] of Object.entries(implementations)) {
         for (let i = 0; i < numWarmup; ++i) {
             await measure(label, act);
@@ -32,8 +33,8 @@ async function measureAll() {
 
         let minTime = null, sumTime = 0, maxTime = null;
         for (const time of times) {
-            minTime = !minTime || time < minTime ? time : minTime;
-            maxTime = !maxTime || time > maxTime ? time : maxTime;
+            minTime = (minTime == null) || time < minTime ? time : minTime;
+            maxTime = (maxTime == null) || time > maxTime ? time : maxTime;
             sumTime += time;
         }
 
@@ -44,6 +45,7 @@ async function measureAll() {
             " max: " + maxTime + "ms" +
             " avg: " + avgTime + "ms");
     }
+    document.body.innerHTML = "Done!";
 }
 
 async function setup() {
@@ -71,4 +73,6 @@ async function setup() {
     // }
 }
 
-setup().then(measureAll);
+window.addEventListener("load", function () {
+    setup().then(measureAll);
+});
