@@ -1,14 +1,29 @@
 let implementations = {};
 
 async function measure(label, act) {
-    const buf = files["data/program.dat"].slice();
+    const maxRuns = 100;
+    const minTimeMS = 10;
 
+    let buffers = [];
+    for (let i = 0; i < maxRuns; ++i) {
+        const buf = files["data/program.dat"].slice();
+        buffers.push(buf);
+    }
+
+    // time for at least minTimeMS.
+    // the resultion on my browser seems to be 0.1ms which is problematic for roc.
+    // We will time at most maxRuns times due to how many buffers are loaded.
     const before = performance.now();
-    const cnt = await act(buf);
+    let runs = 0;
+    let cnt = 0;
+    while(runs < maxRuns && performance.now() - before < minTimeMS) {
+        cnt = await act(buffers[runs]);
+        ++runs;
+    }
     const after = performance.now();
     if (cnt != 4142) throw { label: label, cnt: cnt };
 
-    const time = after - before;
+    const time = (after - before)/runs;
     // console.log(label + ": " + cnt + " cycles done in " + time + "ms");
     return time;
 };
@@ -17,7 +32,7 @@ async function measureAll() {
     const numRuns = 100;
     const numWarmup = 100;
 
-    document.body.innerHTML = "";
+    document.body.innerHTML = "Running...";
     for (const [label, act] of Object.entries(implementations)) {
         for (let i = 0; i < numWarmup; ++i) {
             await measure(label, act);
@@ -45,7 +60,7 @@ async function measureAll() {
             " max: " + maxTime + "ms" +
             " avg: " + avgTime + "ms");
     }
-    document.body.innerHTML = "Done!";
+    document.body.innerHTML = "Done!<br/>Look at the JS console for the results.";
 }
 
 async function setup() {
