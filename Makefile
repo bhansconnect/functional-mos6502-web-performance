@@ -1,5 +1,5 @@
 HTML_FILES	= index.html base64.js main.js
-IMPLS		= idris2/main.js js/mos6502.js roc/host.js roc/emulator.wasm
+IMPLS		= idris2/main.js js/mos6502.js roc/host.js roc/emulator.wasm roc-effectful/host.js roc-effectful/emulator.wasm
 
 .ONESHELL:
 
@@ -47,5 +47,16 @@ _build/implementations/roc/emulator.wasm: implementations/roc/emulator.wasm
 	cp -f $< $@
 
 _build/implementations/roc/host.js: implementations/roc/platform/host.js
+	mkdir -p $(dir $@)
+	cp -f $< $@
+
+implementations/roc-effectful/emulator.wasm:
+	(roc build --target=wasm32 --optimize implementations/roc-effectful/emulator.roc)
+
+_build/implementations/roc-effectful/emulator.wasm: implementations/roc-effectful/emulator.wasm
+	mkdir -p $(dir $@)
+	cp -f $< $@
+
+_build/implementations/roc-effectful/host.js: implementations/roc-effectful/platform/host.js
 	mkdir -p $(dir $@)
 	cp -f $< $@

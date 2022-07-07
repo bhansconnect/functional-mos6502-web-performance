@@ -56,6 +56,9 @@ async function setup() {
 
     roc_func = await roc_gen_func();
     implementations["Roc"] = async buf => roc_func(buf);
+
+    roc_effectful_func = await roc_effectful_gen_func();
+    implementations["Roc-Effectful"] = async buf => roc_effectful_func(buf);
     // {
     //     const mod = await import("./implementations/purescript/bundle.js");
     //     implementations["PureScript"] = async buf => mod.run(buf)();
