@@ -55,7 +55,7 @@ writeReg = \cpu, reg, byte ->
 
 fetch : CPU -> Effect {cpu: CPU, byte: U8}
 fetch = \cpu ->
-    byte <- after (readMem cpu.pc)
+    byte <- readMem cpu.pc |> after
     always {cpu: { cpu & pc: Num.addWrap cpu.pc 1 }, byte}
 
 toAddr : Byte, Byte -> Addr
@@ -64,39 +64,39 @@ toAddr = \lo, hi ->
 
 fetchAddr : CPU -> Effect {cpu: CPU, addr: Addr}
 fetchAddr = \cpu ->
-    lo <- after (fetch cpu)
-    hi <- after (fetch lo.cpu)
+    lo <- fetch cpu |> after
+    hi <- fetch lo.cpu |> after
     always {cpu: hi.cpu, addr: toAddr lo.byte hi.byte}
 
 readMemAddr : Addr -> Effect Addr
 readMemAddr = \addr ->
-    lo <- after (readMem addr)
-    hi <- after (readMem (Num.addWrap addr 1))
+    lo <- readMem addr |> after
+    hi <- readMem (Num.addWrap addr 1) |> after
     always (toAddr lo hi)
 
 push : CPU, Byte -> Effect CPU
 push = \cpu, byte ->
     ptr = Num.toU16 cpu.sp
-    _ <- after (writeMem (Num.addWrap ptr 0x100) byte)
+    _ <- writeMem (Num.addWrap ptr 0x100) byte |> after
     always { cpu & sp: Num.subWrap (Num.toU8 ptr) 1 }
 
 pushAddr : CPU, Addr -> Effect CPU
 pushAddr = \cpu, addr ->
     hi = Num.toU8 (Num.shiftRightZfBy 8 addr)
     lo = Num.toU8 (Num.bitwiseAnd addr 0xFF)
-    nextCpu <- after (push cpu hi)
+    nextCpu <- push cpu hi |> after
     push nextCpu lo
 
 pop : CPU -> Effect {cpu: CPU, byte: Byte}
 pop = \cpu ->
     ptr = Num.toU16 (Num.addWrap cpu.sp 1)
-    byte <- after (readMem (Num.addWrap ptr 0x100))
+    byte <- readMem (Num.addWrap ptr 0x100) |> after
     always { cpu: { cpu & sp: Num.toU8 ptr }, byte }
 
 popAddr : CPU -> Effect {cpu: CPU, addr: Addr}
 popAddr = \cpu ->
-    lo <- after (pop cpu)
-    hi <- after (pop lo.cpu)
+    lo <- pop cpu |> after
+    hi <- pop lo.cpu |> after
     always {cpu: hi.cpu, addr: toAddr lo.byte hi.byte}
 
 getFlag : CPU, Flag -> Bool
@@ -129,8 +129,8 @@ imm = \cpu, op ->
 
 byVal : CPU, Addressing, ByteOp -> Effect CPU
 byVal = \cpu, addressing, op ->
-    next <- after (addressing cpu)
-    byte <- after (readMem next.addr)
+    next <- addressing cpu |> after
+    byte <- readMem next.addr |> after
     op {cpu: next.cpu, byte}
 
 byRef : CPU, Addressing, AddrOp -> Effect CPU
@@ -140,31 +140,31 @@ byRef = \cpu, addressing, op ->
 inplace : CPU, Addressing, PartialByteOp -> Effect CPU
 inplace = \cpu, addressing, op ->
     ref <- byRef cpu addressing
-    readByte <- after (readMem ref.addr)
-    out <- after (op {cpu: ref.cpu, byte: readByte})
-    _ <- after (writeMem ref.addr out.byte)
+    readByte <- readMem ref.addr |> after
+    out <- op {cpu: ref.cpu, byte: readByte} |> after
+    _ <- writeMem ref.addr out.byte |> after
     always out.cpu
 
 implied : CPU, Reg, PartialByteOp -> Effect CPU
 implied = \cpu, reg, op ->
     readByte = readReg cpu reg
-    out <- after (op {cpu, byte: readByte})
+    out <- op {cpu, byte: readByte} |> after
     always (writeReg out.cpu reg out.byte)
 
 zp : Addressing
 zp = \cpu ->
-    out <- after (fetch cpu)
+    out <- fetch cpu |> after
     always {cpu: out.cpu, addr: (Num.toU16 out.byte)}
 
 zpX : Addressing
 zpX = \cpu ->
-    zpOut <- after (zp cpu)
+    zpOut <- zp cpu |> after
     byte = readReg zpOut.cpu X
     always {cpu: zpOut.cpu, addr: (Num.addWrap zpOut.addr (Num.toU16 byte))}
 
 zpY : Addressing
 zpY = \cpu ->
-    zpOut <- after (zp cpu)
+    zpOut <- zp cpu |> after
     byte = readReg zpOut.cpu Y
     always {cpu: zpOut.cpu, addr: (Num.addWrap zpOut.addr (Num.toU16 byte))}
 
@@ -173,29 +173,29 @@ abs = \cpu -> fetchAddr cpu
 
 absX : Addressing
 absX = \cpu ->
-    absOut <- after (abs cpu)
+    absOut <- abs cpu |> after
     byte = readReg absOut.cpu X
     always {cpu: absOut.cpu, addr: (Num.addWrap absOut.addr (Num.toU16 byte))}
 
 absY : Addressing
 absY = \cpu ->
-    absOut <- after (abs cpu)
+    absOut <- abs cpu |> after
     byte = readReg absOut.cpu Y
     always {cpu: absOut.cpu, addr: (Num.addWrap absOut.addr (Num.toU16 byte))}
 
 xInd : Addressing
 xInd = \cpu ->
-    fetchOut <- after (fetch cpu)
+    fetchOut <- fetch cpu |> after
     offset = readReg fetchOut.cpu X
     ref = Num.addWrap (Num.toU16 fetchOut.byte) (Num.toU16 offset)
-    addr <- after (readMemAddr ref)
+    addr <- readMemAddr ref |> after
     always {cpu: fetchOut.cpu, addr}
 
 indY : Addressing
 indY = \cpu ->
-    fetchOut <- after (fetch cpu)
+    fetchOut <- fetch cpu |> after
     offset = readReg fetchOut.cpu Y
-    base <- after (readMemAddr (Num.toU16 fetchOut.byte))
+    base <- readMemAddr (Num.toU16 fetchOut.byte) |> after
     addr = Num.addWrap base (Num.toU16 offset)
     always {cpu: fetchOut.cpu, addr}
 
@@ -259,19 +259,19 @@ alu = \f ->
 and : ByteOp
 and = \{cpu, byte} ->
     a = readReg cpu A
-    aluOut <- after ((alu (\v -> Num.bitwiseAnd (Num.toU16 byte) v)) {cpu, byte: a})
+    aluOut <- (alu (\v -> Num.bitwiseAnd (Num.toU16 byte) v)) {cpu, byte: a} |> after
     always (writeReg aluOut.cpu A aluOut.byte)
 
 eor : ByteOp
 eor = \{cpu, byte} ->
     a = readReg cpu A
-    aluOut <- after ((alu (\v -> Num.bitwiseXor (Num.toU16 byte) v)) {cpu, byte: a})
+    aluOut <- (alu (\v -> Num.bitwiseXor (Num.toU16 byte) v)) {cpu, byte: a} |> after
     always (writeReg aluOut.cpu A aluOut.byte)
 
 ora : ByteOp
 ora = \{cpu, byte} ->
     a = readReg cpu A
-    aluOut <- after ((alu (\v -> Num.bitwiseOr (Num.toU16 byte) v)) {cpu, byte: a})
+    aluOut <- (alu (\v -> Num.bitwiseOr (Num.toU16 byte) v)) {cpu, byte: a} |> after
     always (writeReg aluOut.cpu A aluOut.byte)
 
 shiftRot : (Bool, Byte -> {c: Byte, v: Byte}) -> PartialByteOp
@@ -309,7 +309,7 @@ bit = \{cpu, byte: v} ->
 br : CPU, Flag, Bool -> Effect CPU
 br = \cpu, flag, target ->
     b = getFlag cpu flag
-    {cpu: outCpu, byte: offset} <- after (fetch cpu)
+    {cpu: outCpu, byte: offset} <- fetch cpu |> after
     if b == target then
         nextPC =
                 addResult = Num.addWrap outCpu.pc (Num.toU16 offset)
@@ -340,30 +340,30 @@ store : Reg -> AddrOp
 store = \reg ->
     \{cpu, addr} ->
         readByte = readReg cpu reg
-        _ <- after (writeMem addr readByte)
+        _ <- writeMem addr readByte |> after
         always cpu
 
 jsr : AddrOp
 jsr = \{cpu, addr} ->
     curr = cpu.pc
-    out <- after (pushAddr cpu (Num.subWrap curr 1))
+    out <- pushAddr cpu (Num.subWrap curr 1) |> after
     always {out & pc: addr}
 
 transfer : CPU, Reg, Reg -> Effect CPU
 transfer = \cpu, from, to ->
     # This looks wrong, but I am just gonna copy what the js emulator does
     byte = readReg cpu from
-    out <- after ((alu (\_ -> 0)) {cpu, byte})
+    out <- (alu (\_ -> 0)) {cpu, byte} |> after
     always (writeReg out.cpu to out.byte)
 
 rts : CPU -> Effect CPU
 rts = \cpu ->
-    {cpu: outCpu, addr: outAddr} <- after (popAddr cpu)
+    {cpu: outCpu, addr: outAddr} <- popAddr cpu |> after
     always {outCpu & pc: Num.addWrap outAddr 1}
 
 step : CPU -> Effect CPU
 step = \cpu ->
-    {cpu: fetchCpu, byte: op} <- after (fetch cpu)
+    {cpu: fetchCpu, byte: op} <- fetch cpu |> after
     when op is
         0x69 -> imm fetchCpu adc
         0x65 -> byVal fetchCpu zp adc
@@ -450,11 +450,11 @@ step = \cpu ->
         0xc8 -> implied fetchCpu Y inc
 
         0x4c ->
-            {cpu: outCpu, addr} <- after (fetchAddr fetchCpu)
+            {cpu: outCpu, addr} <- fetchAddr fetchCpu |> after
             always {outCpu & pc: addr}
         0x6c ->
-            {cpu: outCpu, addr} <- after (fetchAddr fetchCpu)
-            memAddr <- after (readMemAddr addr)
+            {cpu: outCpu, addr} <- fetchAddr fetchCpu |> after
+            memAddr <- readMemAddr addr |> after
             always {outCpu & pc: memAddr}
         
         0x20 ->
@@ -544,11 +544,11 @@ step = \cpu ->
         0xba -> transfer fetchCpu SP X
         0x48 -> push fetchCpu (readReg fetchCpu A)
         0x68 ->
-            out <- after (pop fetchCpu)
+            out <- pop fetchCpu |> after
             always (writeReg out.cpu A out.byte)
         0x08 -> push fetchCpu (Num.bitwiseOr (readReg fetchCpu Status) 0x10)
         0x28 ->
-            out <- after (pop fetchCpu)
+            out <- pop fetchCpu |> after
             always (writeReg out.cpu Status out.byte)
 
         _ ->
