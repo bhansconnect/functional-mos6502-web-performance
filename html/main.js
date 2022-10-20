@@ -82,6 +82,11 @@ async function setup()
         await clean_promise;
         implementations["Clean"] = async buf => clean_run(buf);
     }
+
+    {
+        roc_func = await roc_gen_func();
+        implementations["Roc"] = async buf => roc_func(buf);
+    }
 }
 
 setup().then({});
