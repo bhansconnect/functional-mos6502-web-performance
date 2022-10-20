@@ -10,9 +10,9 @@ function printOut(s) {
 async function measure(label, act) {
     const buf = files["data/program.dat"].slice();
 
-    const before = +new Date();
+    const before = performance.now();
     const cnt = await act(buf);
-    const after = +new Date();
+    const after = performance.now();
     if (cnt != 4142) throw { label: label, cnt: cnt };
 
     const time = after - before;
